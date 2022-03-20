@@ -1,27 +1,48 @@
 const fs = require('fs');
-const pathUtil = require('../util/path');
-const path = require('path')
-const sd = require('string_decoder')
+const path = require('path');
+
+const p = path.join(
+  path.dirname(process.mainModule.filename),
+  'data',
+  'products.json'
+);
+
+const getProductsFromFile = cb => {
+  fs.readFile(p, (err, fileContent) => {
+    if (err) {
+      cb([]);
+    } else {
+      cb(JSON.parse(fileContent));
+    }
+  });
+};
 
 module.exports = class Product {
-    constructor(title) {
-        this.title = title;
-    }
+  constructor(title, imageUrl, description, price) {
+    this.title = title;
+    this.imageUrl = imageUrl;
+    this.description = description;
+    this.price = price;
+  }
 
-    save() {
-        const p = path.join(pathUtil, 'data', 'products.json')
-        fs.readFile(p, (error, fileContent) => {
-            let products = [];
-            if(!error) {
-                let decoder = new sd.StringDecoder('utf8');
-                products = JSON.parse(decoder.write(fileContent));
-            }
-            products.push(this)
-            fs.writeFile(p, JSON.stringify(products), error => console.log(error));
-        });
-    }
+  save() {
+    this.id = Math.random().toString();
+    getProductsFromFile(products => {
+      products.push(this);
+      fs.writeFile(p, JSON.stringify(products), err => {
+        console.log(err);
+      });
+    });
+  }
 
-    static fetchAll() {
-        return [];
-    }
-}
+  static fetchAll(cb) {
+    getProductsFromFile(cb);
+  }
+
+  static findById(id, cb) {
+    getProductsFromFile(products => {
+      const product = products.find(p => p.id === id);
+      cb(product);
+    })
+  }
+};
